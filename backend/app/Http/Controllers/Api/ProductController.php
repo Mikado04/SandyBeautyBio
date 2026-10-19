@@ -30,6 +30,23 @@ class ProductController extends Controller
             $requete->where('name', 'like', '%'.$recherche.'%');
         }
 
+        
+        // Filtre par gamme : ?gama=SANDY NATUR ou ?gama=BELLA ECUATOGUINEANA BIO
+        $gama = $request->query('gama');
+
+        if ($gama) {
+            if ($gama !== 'SANDY NATUR' && $gama !== 'BELLA ECUATOGUINEANA BIO') {
+                abort(404, 'Gama desconocida.');
+            }
+
+            $requete->where('gama', $gama);
+        }
+
+        // Version condensee possible :
+        // if ($gama && !in_array($gama, ['SANDY NATUR', 'BELLA ECUATOGUINEANA BIO'], true)) { abort(404); }
+        // in_array evite de repeter $gama !== pour chaque valeur quand la liste s'allonge.
+
+
         $requete->orderBy('name');
 
         return ProductResource::collection($requete->paginate(12));

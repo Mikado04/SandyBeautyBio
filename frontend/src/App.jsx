@@ -1,26 +1,50 @@
 import { useState } from 'react'
 import Header from './components/Header'
+import Hero from './components/Hero'
+import Gamas from './components/Gamas'
+import Tienda from './components/Tienda'
+import Masajes from './components/Masajes'
+import Nosotros from './components/Nosotros'
+import Contacto from './components/Contacto'
 import Footer from './components/Footer'
 import Cart from './components/Cart'
-import Home from './pages/Home'
-import Catalog from './pages/Catalog'
-import Cabina from './pages/Cabina'
-import Nosotros from './pages/Nosotros'
+import ReservaModal from './components/ReservaModal'
 import Checkout from './pages/Checkout'
 import Confirmation from './pages/Confirmation'
 import AdminLogin from './pages/AdminLogin'
 import AdminProducts from './pages/AdminProducts'
 import AdminProductForm from './pages/AdminProductForm'
+import AdminPedidos from './pages/AdminPedidos'
+import AdminPedidoDetalle from './pages/AdminPedidoDetalle'
+import RetornoPago from './pages/RetornoPago'
 
-// Si l'adresse se termine par #admin, on ouvre directement l'administration.
-// Exemple : http://localhost:5173/#admin
+// Retour de FedaPay : l'adresse contient ?pedido=SB-2026-0002&status=...&id=...
+// Renvoie la reference de la commande, ou null si on n'arrive pas de FedaPay.
+function referenciaDeRetorno() {
+    const parametros = new URLSearchParams(window.location.search)
+    return parametros.get('pedido')
+}
+
+// Retour Kkiapay : l'adresse contient aussi &transaction_id=... (null sinon)
+function transaccionDeRetorno() {
+    const parametros = new URLSearchParams(window.location.search)
+    return parametros.get('transaction_id')
+}
+
+// Si l'adresse contient ?pedido=..., on affiche le resultat du paiement.
+// Si elle se termine par #admin, on ouvre directement l'administration.
 function pageDeDepart() {
-    if (window.location.hash !== '#admin') {
-        return 'inicio'
+    if (referenciaDeRetorno()) {
+        return 'retorno-pago'
     }
 
+    if (window.location.hash !== '#admin') {
+        return 'tienda-unica'
+    }
+
+    // Connecte : l'administration s'ouvre sur les commandes (le travail du jour)
     if (localStorage.getItem('token')) {
-        return 'admin-products'
+        return 'admin-pedidos'
     }
 
     return 'admin-login'
@@ -30,8 +54,18 @@ function App() {
     // Le panier : une liste de { product, quantity }
     const [cart, setCart] = useState([])
 
-    // La page affichee
+    // Le tiroir du panier est-il ouvert ?
+    const [cartAbierto, setCartAbierto] = useState(false)
+
+    // La page affichee : la page unique, le paiement, ou l'administration
     const [page, setPage] = useState(pageDeDepart())
+
+    // La gamme choisie dans la boutique (null = toutes)
+    const [gama, setGama] = useState(null)
+
+    // La fenetre de reservation : fermee, ou ouverte sur un service
+    const [reservaAbierta, setReservaAbierta] = useState(false)
+    const [servicioElegido, setServicioElegido] = useState(null)
 
     // La reponse de l'API apres la creation de la commande
     const [pedido, setPedido] = useState(null)
@@ -42,10 +76,8 @@ function App() {
     // Le produit en cours de modification (null = creation)
     const [editing, setEditing] = useState(null)
 
-    function navigate(cible) {
-        setPage(cible)
-        window.scrollTo(0, 0)
-    }
+    // La reference de la commande ouverte dans l'administration (fiche commande)
+    const [pedidoAdmin, setPedidoAdmin] = useState(null)
 
     function addToCart(product) {
         const ligne = cart.find((l) => l.product.id === product.id)
@@ -53,10 +85,12 @@ function App() {
         // Deja dans le panier : on augmente la quantite
         if (ligne) {
             changeQuantity(product.id, ligne.quantity + 1)
+            setCartAbierto(true)
             return
         }
 
         setCart([...cart, { product: product, quantity: 1 }])
+        setCartAbierto(true)
     }
 
     function changeQuantity(productId, quantity) {
@@ -104,60 +138,111 @@ function App() {
         return count
     }
 
+    function irAlPago() {
+        setCartAbierto(false)
+        setPage('pago')
+        window.scrollTo(0, 0)
+    }
+
     function orderCreated(data) {
         setPedido(data)
         setCart([])
-        navigate('confirmacion')
+        setPage('confirmacion')
+        window.scrollTo(0, 0)
     }
 
-    function backToShop() {
+    function volverALaTienda() {
         setPedido(null)
-        navigate('tienda')
+        setPage('tienda-unica')
+        window.scrollTo(0, 0)
+    }
+
+    // Depuis la page de retour FedaPay : on retire ?pedido=... de l'adresse,
+    // sinon un rechargement de la page rouvrirait le resultat du paiement.
+    function salirDelRetorno() {
+        window.history.replaceState(null, '', window.location.pathname)
+        volverALaTienda()
+    }
+
+    // Bouton d'une gamme depuis la section Gamas : on filtre et on descend
+    function verGama(clave) {
+        setGama(clave)
+
+        const seccion = document.getElementById('tienda')
+
+        if (seccion) {
+            seccion.scrollIntoView({ behavior: 'smooth' })
+        }
+    }
+
+    // Ouvre la fenetre de reservation. Sans argument : aucun service preselectionne.
+    function abrirReserva(clave) {
+        setServicioElegido(clave)
+        setReservaAbierta(true)
     }
 
     function goToAdmin() {
         if (token) {
-            navigate('admin-products')
+            setPage('admin-pedidos')
             return
         }
 
-        navigate('admin-login')
+        setPage('admin-login')
     }
 
     function saveToken(nouveauJeton) {
         localStorage.setItem('token', nouveauJeton)
         setToken(nouveauJeton)
-        navigate('admin-products')
+        setPage('admin-pedidos')
+    }
+
+    // Onglets du bandeau d'administration : 'pedidos' ou 'productos'
+    function irASeccionAdmin(seccion) {
+        if (seccion === 'productos') {
+            setPage('admin-products')
+        } else {
+            setPage('admin-pedidos')
+        }
+
+        window.scrollTo(0, 0)
+    }
+
+    function verPedido(referencia) {
+        setPedidoAdmin(referencia)
+        setPage('admin-pedido')
+        window.scrollTo(0, 0)
+    }
+
+    function volverAPedidos() {
+        setPedidoAdmin(null)
+        setPage('admin-pedidos')
     }
 
     function clearToken() {
         localStorage.removeItem('token')
         setToken(null)
-        navigate('inicio')
+        setPage('tienda-unica')
     }
 
-    // Bouton « Nuevo producto » : aucun produit a modifier
     function newProduct() {
         setEditing(null)
-        navigate('admin-form')
+        setPage('admin-form')
     }
 
-    // Bouton « Editar » d'une ligne
     function editProduct(product) {
         setEditing(product)
-        navigate('admin-form')
+        setPage('admin-form')
     }
 
-    // Le formulaire a enregistre, ou on annule
     function backToList() {
         setEditing(null)
-        navigate('admin-products')
+        setPage('admin-products')
     }
 
-    // ---- Les pages d'administration ont leur propre mise en page ----
+    // ---- L'administration a sa propre mise en page ----
 
     if (page === 'admin-login') {
-        return <AdminLogin onLogin={saveToken} onBack={() => navigate('inicio')} />
+        return <AdminLogin onLogin={saveToken} onBack={volverALaTienda} />
     }
 
     if (page === 'admin-form') {
@@ -168,68 +253,102 @@ function App() {
         return (
             <AdminProducts
                 onLogout={clearToken}
-                onBack={() => navigate('inicio')}
+                onBack={volverALaTienda}
                 onNew={newProduct}
                 onEdit={editProduct}
+                onSeccion={irASeccionAdmin}
             />
         )
     }
 
-    // ---- Le site public : en-tete, contenu, pied de page ----
-
-    // La barre du panier est fixee en bas : on reserve la place pour ne pas
-    // recouvrir la fin du pied de page.
-    let placePourLePanier = ''
-
-    if (page === 'tienda' && cart.length > 0) {
-        placePourLePanier = 'pb-24'
+    if (page === 'admin-pedidos') {
+        return (
+            <AdminPedidos
+                onVerPedido={verPedido}
+                onSeccion={irASeccionAdmin}
+                onBack={volverALaTienda}
+                onLogout={clearToken}
+            />
+        )
     }
 
+    if (page === 'admin-pedido') {
+        return (
+            <AdminPedidoDetalle
+                referencia={pedidoAdmin}
+                onVolver={volverAPedidos}
+                onSeccion={irASeccionAdmin}
+                onBack={volverALaTienda}
+                onLogout={clearToken}
+            />
+        )
+    }
+
+    // ---- Le tunnel de commande ----
+
+    if (page === 'pago') {
+        return (
+            <Checkout
+                cart={cart}
+                total={cartTotal()}
+                onSuccess={orderCreated}
+                onBack={volverALaTienda}
+            />
+        )
+    }
+
+    if (page === 'confirmacion') {
+        return <Confirmation pedido={pedido} onBack={volverALaTienda} />
+    }
+
+    if (page === 'retorno-pago') {
+        return (
+            <RetornoPago
+                referencia={referenciaDeRetorno()}
+                transaccionKkiapay={transaccionDeRetorno()}
+                onBack={salirDelRetorno}
+            />
+        )
+    }
+
+    // ---- La page unique ----
+
     return (
-        <div className={'flex min-h-screen flex-col ' + placePourLePanier}>
+        <>
             <Header
-                page={page}
-                onNavigate={navigate}
                 count={cartCount()}
-                onCart={() => navigate('pago')}
+                onCart={() => setCartAbierto(true)}
+                onReservar={() => abrirReserva(null)}
             />
 
-            <main className="flex-1">
-                {page === 'inicio' && <Home onNavigate={navigate} />}
-
-                {page === 'tienda' && <Catalog onAdd={addToCart} />}
-
-                {page === 'cabina' && <Cabina />}
-
-                {page === 'nosotros' && <Nosotros />}
-
-                {page === 'pago' && (
-                    <Checkout
-                        cart={cart}
-                        total={cartTotal()}
-                        onSuccess={orderCreated}
-                        onBack={backToShop}
-                    />
-                )}
-
-                {page === 'confirmacion' && (
-                    <Confirmation pedido={pedido} onBack={backToShop} />
-                )}
+            <main>
+                <Hero onReservar={() => abrirReserva(null)} />
+                <Gamas onVerGama={verGama} />
+                <Tienda onAdd={addToCart} gamaElegida={gama} onGamaChange={setGama} />
+                <Masajes onReservar={abrirReserva} />
+                <Nosotros />
+                <Contacto />
             </main>
 
-            <Footer onNavigate={navigate} onAdmin={goToAdmin} />
+            <Footer onAdmin={goToAdmin} />
 
-            {page === 'tienda' && (
-                <Cart
-                    cart={cart}
-                    total={cartTotal()}
-                    count={cartCount()}
-                    onChangeQuantity={changeQuantity}
-                    onRemove={removeFromCart}
-                    onCheckout={() => navigate('pago')}
+            <Cart
+                abierto={cartAbierto}
+                cart={cart}
+                total={cartTotal()}
+                onClose={() => setCartAbierto(false)}
+                onChangeQuantity={changeQuantity}
+                onRemove={removeFromCart}
+                onCheckout={irAlPago}
+            />
+
+            {reservaAbierta && (
+                <ReservaModal
+                    servicioInicial={servicioElegido}
+                    onClose={() => setReservaAbierta(false)}
                 />
             )}
-        </div>
+        </>
     )
 }
 

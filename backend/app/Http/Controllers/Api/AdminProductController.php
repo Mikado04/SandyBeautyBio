@@ -22,15 +22,16 @@ class AdminProductController extends Controller
     public function store(Request $request)
     {
         $donnees = $request->validate([
-            'name'        => 'required|string|max:255',
+            'name' => 'required|string|max:255',
             'category_id' => 'required|integer|exists:categories,id',
+            'gama' => 'nullable|in:SANDY NATUR,BELLA ECUATOGUINEANA BIO',
             'description' => 'nullable|string',
-            'size'        => 'nullable|string|max:50',
-            'price'       => 'required|integer|min:0',
-            'stock'       => 'required|integer|min:0',
-            'highlight'   => 'nullable|string|max:50',
-            'is_active'   => 'required|boolean',
-            'image'       => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+            'size' => 'nullable|string|max:50',
+            'price' => 'required|integer|min:0',
+            'stock' => 'required|integer|min:0',
+            'highlight' => 'nullable|string|max:50',
+            'is_active' => 'required|boolean',
+            'image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
         ]);
 
         $slug = Str::slug($donnees['name']);
@@ -43,23 +44,25 @@ class AdminProductController extends Controller
 
         $produit = new Product();
         $produit->category_id = $donnees['category_id'];
-        $produit->name        = $donnees['name'];
-        $produit->slug        = $slug;
+        // Vide ou absent : le produit n'a pas de gamme (null)
+        $produit->gama = $request->input('gama');
+        $produit->name = $donnees['name'];
+        $produit->slug = $slug;
         $produit->description = $request->input('description');
-        $produit->size        = $request->input('size');
-        $produit->price       = $donnees['price'];
-        $produit->stock       = $donnees['stock'];
-        $produit->highlight   = $request->input('highlight');
-        $produit->is_active   = $donnees['is_active'];
+        $produit->size = $request->input('size');
+        $produit->price = $donnees['price'];
+        $produit->stock = $donnees['stock'];
+        $produit->highlight = $request->input('highlight');
+        $produit->is_active = $donnees['is_active'];
         $produit->save();
 
         // La photo, si elle a ete envoyee
         if ($request->hasFile('image')) {
             $fichier = $request->file('image');
-            $nom = $slug.'.'.$fichier->getClientOriginalExtension();
+            $nom = $slug . '.' . $fichier->getClientOriginalExtension();
             $fichier->move(public_path('images/products'), $nom);
 
-            $produit->image_path = 'images/products/'.$nom;
+            $produit->image_path = 'images/products/' . $nom;
             $produit->save();
         }
 
@@ -72,20 +75,21 @@ class AdminProductController extends Controller
     {
         $produit = Product::find($id);
 
-        if (! $produit) {
+        if (!$produit) {
             return response()->json(['message' => 'Producto no encontrado.'], 404);
         }
 
         $donnees = $request->validate([
-            'name'        => 'required|string|max:255',
+            'name' => 'required|string|max:255',
             'category_id' => 'required|integer|exists:categories,id',
+            'gama' => 'nullable|in:SANDY NATUR,BELLA ECUATOGUINEANA BIO',
             'description' => 'nullable|string',
-            'size'        => 'nullable|string|max:50',
-            'price'       => 'required|integer|min:0',
-            'stock'       => 'required|integer|min:0',
-            'highlight'   => 'nullable|string|max:50',
-            'is_active'   => 'required|boolean',
-            'image'       => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+            'size' => 'nullable|string|max:50',
+            'price' => 'required|integer|min:0',
+            'stock' => 'required|integer|min:0',
+            'highlight' => 'nullable|string|max:50',
+            'is_active' => 'required|boolean',
+            'image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
         ]);
 
         $slug = Str::slug($donnees['name']);
@@ -98,15 +102,22 @@ class AdminProductController extends Controller
         }
 
         $produit->category_id = $donnees['category_id'];
-        $produit->name        = $donnees['name'];
-        $produit->slug        = $slug;
+        // Vide ou absent : le produit n'a pas de gamme (null)
+        $produit->gama = $request->input('gama');
+        $produit->name = $donnees['name'];
+        $produit->slug = $slug;
         $produit->description = $request->input('description');
-        $produit->size        = $request->input('size');
-        $produit->price       = $donnees['price'];
-        $produit->stock       = $donnees['stock'];
-        $produit->highlight   = $request->input('highlight');
-        $produit->is_active   = $donnees['is_active'];
+        $produit->size = $request->input('size');
+        $produit->price = $donnees['price'];
+        $produit->stock = $donnees['stock'];
+        $produit->highlight = $request->input('highlight');
+        $produit->is_active = $donnees['is_active'];
         $produit->save();
+
+        // Le chemin est souvent identique (meme slug, meme extension), donc
+        // save() ne fait rien et updated_at reste figé. On force la date a
+        // avancer pour que le ?v= change et que le navigateur recharge la photo.
+        $produit->touch();
 
         if ($request->hasFile('image')) {
             // On efface l'ancienne photo pour ne pas laisser de fichiers orphelins
@@ -115,10 +126,10 @@ class AdminProductController extends Controller
             }
 
             $fichier = $request->file('image');
-            $nom = $slug.'.'.$fichier->getClientOriginalExtension();
+            $nom = $slug . '.' . $fichier->getClientOriginalExtension();
             $fichier->move(public_path('images/products'), $nom);
 
-            $produit->image_path = 'images/products/'.$nom;
+            $produit->image_path = 'images/products/' . $nom;
             $produit->save();
         }
 
@@ -131,7 +142,7 @@ class AdminProductController extends Controller
     {
         $produit = Product::find($id);
 
-        if (! $produit) {
+        if (!$produit) {
             return response()->json(['message' => 'Producto no encontrado.'], 404);
         }
 

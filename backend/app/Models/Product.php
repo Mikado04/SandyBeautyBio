@@ -20,6 +20,7 @@ class Product extends Model
         'highlight',
         'image_path',
         'is_active',
+        'gama',
     ];
 
     public function casts()

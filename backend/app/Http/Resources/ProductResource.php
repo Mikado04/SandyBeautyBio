@@ -10,11 +10,15 @@ class ProductResource extends JsonResource
     public function toArray(Request $request): array
     {
         // On renvoie une URL complete : React n'a rien a reconstruire
-        $imageUrl = null;
+                $imageUrl = null;
 
         if ($this->image_path) {
-            $imageUrl = url($this->image_path);
+            // Le fichier garde le meme nom a chaque remplacement. On ajoute donc
+            // la date de derniere modification a l'adresse : elle change, et le
+            // navigateur redemande la photo au lieu de servir celle de son cache.
+            $imageUrl = url($this->image_path).'?v='.$this->updated_at->timestamp;
         }
+
 
         return [
             'id' => $this->id,
@@ -30,6 +34,7 @@ class ProductResource extends JsonResource
             'image_url' => $imageUrl,
             'is_active' => $this->is_active,
             'category' => new CategoryResource($this->category),
+            'gama' => $this->gama,
         ];
     }
 }

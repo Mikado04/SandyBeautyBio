@@ -1,11 +1,17 @@
 import { useEffect, useState } from 'react'
 import api, { authHeader } from '../lib/api'
 import { formatPrice } from '../lib/format'
+import AdminBarra from '../components/AdminBarra'
+import VentanaConfirmar, { Punto } from '../components/VentanaConfirmar'
 
-export default function AdminProducts({ onLogout, onBack, onNew, onEdit }) {
+export default function AdminProducts({ onLogout, onBack, onNew, onEdit, onSeccion }) {
     const [products, setProducts] = useState([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
+    // Le produit dont on demande la suppression (fenetre ouverte), ou null
+    const [aEliminar, setAEliminar] = useState(null)
+    // Message vert apres une suppression ("Producto eliminado." ou "desactivado")
+    const [aviso, setAviso] = useState(null)
 
     useEffect(() => {
         load()
@@ -33,57 +39,70 @@ export default function AdminProducts({ onLogout, onBack, onNew, onEdit }) {
             })
     }
 
+    // Le bouton "Eliminar" ouvre d'abord la fenetre de confirmation
     function remove(product) {
-        const ok = window.confirm('¿Eliminar ' + product.name + ' ?')
-
-        if (!ok) {
-            return
-        }
-
-        api.delete('/api/admin/products/' + product.id, { headers: authHeader() })
-            .then(() => load())
-            .catch(() => setError('No se pudo eliminar el producto.'))
+        setAviso(null)
+        setAEliminar(product)
     }
 
-    function logout() {
-        api.post('/api/logout', {}, { headers: authHeader() })
-            .then(() => onLogout())
-            .catch(() => onLogout())
+    // Confirme dans la fenetre : on supprime vraiment
+    function confirmarEliminacion() {
+        const product = aEliminar
+        setAEliminar(null)
+
+        api.delete('/api/admin/products/' + product.id, { headers: authHeader() })
+            .then((res) => {
+                // Le backend dit s'il a supprime le produit ou seulement desactive
+                // (un produit deja commande ne disparait jamais : voir AdminProductController::destroy)
+                setAviso(product.name + ' : ' + res.data.message)
+                load()
+            })
+            .catch(() => setError('No se pudo eliminar el producto.'))
     }
 
     return (
         <div className="min-h-screen bg-cream">
-            <div className="bg-forest text-cream">
-                <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-6 py-6">
-                    <div>
-                        <p className="text-[10px] tracking-[0.3em] text-gold uppercase">
-                            Administración
-                        </p>
-                        <h1 className="font-display mt-1 text-2xl">Productos</h1>
-                    </div>
-
-                    <div className="flex flex-wrap items-center gap-4 text-[11px] tracking-[0.15em] uppercase">
-                        <button
-                            onClick={onNew}
-                            className="bg-gold px-5 py-3 text-forest transition hover:bg-gold-light"
-                        >
-                            Nuevo producto
-                        </button>
-                        <button onClick={onBack} className="text-cream/70 hover:text-gold">
-                            Ver la tienda
-                        </button>
-                        <button onClick={logout} className="text-cream/70 hover:text-gold">
-                            Cerrar sesión
-                        </button>
-                    </div>
-                </div>
-            </div>
+            <AdminBarra seccion="productos" onSeccion={onSeccion} onBack={onBack} onLogout={onLogout} />
 
             <div className="mx-auto max-w-6xl px-6 py-10">
+                <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+                    <h1 className="titulo text-[34px] text-forest sm:text-[42px]">Productos</h1>
+                    <button
+                        onClick={onNew}
+                        className="inline-flex min-h-12 items-center rounded-full bg-forest px-6 text-xs font-medium tracking-[0.14em] text-white uppercase hover:bg-forest-2"
+                    >
+                        + Nuevo producto
+                    </button>
+                </div>
+
                 {error && (
                     <p className="border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">
                         {error}
                     </p>
+                )}
+
+                {aviso && (
+                    <p role="status" className="mb-4 rounded-2xl border border-forest/20 bg-[#e8efe9] px-5 py-3.5 text-sm text-forest">
+                        {aviso}
+                    </p>
+                )}
+
+                {aEliminar && (
+                    <VentanaConfirmar
+                        titulo="¿Eliminar el producto?"
+                        subtitulo={aEliminar.name}
+                        textoConfirmar="Sí, eliminar"
+                        onConfirmar={confirmarEliminacion}
+                        onCerrar={() => setAEliminar(null)}
+                    >
+                        <ul className="flex flex-col gap-2.5 text-[14px] leading-relaxed text-[#4d5e55]">
+                            <Punto>El producto y su foto se borran definitivamente.</Punto>
+                            <Punto>
+                                Si ya aparece en algún pedido, no se borra: se desactiva y deja de
+                                verse en la tienda, para conservar el historial de ventas.
+                            </Punto>
+                        </ul>
+                    </VentanaConfirmar>
                 )}
 
                 {loading && (
@@ -100,6 +119,7 @@ export default function AdminProducts({ onLogout, onBack, onNew, onEdit }) {
                                     <th className="p-4">Foto</th>
                                     <th className="p-4">Nombre</th>
                                     <th className="p-4">Categoría</th>
+                                    <th className="p-4">Gama</th>
                                     <th className="p-4 text-right">Precio</th>
                                     <th className="p-4 text-right">Stock</th>
                                     <th className="p-4">Estado</th>
@@ -114,6 +134,9 @@ export default function AdminProducts({ onLogout, onBack, onNew, onEdit }) {
                                         </td>
                                         <td className="p-4 text-forest">{p.name}</td>
                                         <td className="p-4 text-forest/60">{p.category.name}</td>
+                                        <td className="p-4">
+                                            <EtiquetaGama gama={p.gama} />
+                                        </td>
                                         <td className="p-4 text-right text-forest">
                                             {formatPrice(p.price)}
                                         </td>
@@ -124,13 +147,13 @@ export default function AdminProducts({ onLogout, onBack, onNew, onEdit }) {
                                         <td className="p-4 text-right whitespace-nowrap">
                                             <button
                                                 onClick={() => onEdit(p)}
-                                                className="mr-4 text-[11px] tracking-widest text-forest uppercase hover:text-gold"
+                                                className="boton-contorno boton-mini mr-2"
                                             >
                                                 Editar
                                             </button>
                                             <button
                                                 onClick={() => remove(p)}
-                                                className="text-[11px] tracking-widest text-red-600 uppercase hover:underline"
+                                                className="boton-peligro boton-mini"
                                             >
                                                 Eliminar
                                             </button>
@@ -150,7 +173,7 @@ function Vignette({ product }) {
     if (!product.image_url) {
         return (
             <div className="flex h-12 w-12 items-center justify-center bg-cream">
-                <span className="font-display text-gold/60">{product.name.charAt(0)}</span>
+                <span className="titulo text-gold/60">{product.name.charAt(0)}</span>
             </div>
         )
     }
@@ -172,6 +195,32 @@ function Estado({ active }) {
     return (
         <span className="border border-forest/10 px-2 py-1 text-[10px] tracking-widest text-forest/40 uppercase">
             Inactivo
+        </span>
+    )
+}
+
+// La gamme du produit, ou un avertissement s'il n'en a pas encore :
+// un produit sans gamme n'apparait dans aucun des deux filtres de la boutique.
+function EtiquetaGama({ gama }) {
+    if (gama === 'SANDY NATUR') {
+        return (
+            <span className="rounded-full bg-cream px-3 py-1 text-[10px] font-medium tracking-wider text-forest uppercase">
+                Sandy Natur
+            </span>
+        )
+    }
+
+    if (gama === 'BELLA ECUATOGUINEANA BIO') {
+        return (
+            <span className="rounded-full bg-forest px-3 py-1 text-[10px] font-medium tracking-wider text-gold uppercase">
+                Bella BIO
+            </span>
+        )
+    }
+
+    return (
+        <span className="rounded-full border border-dashed border-amber-500 px-3 py-1 text-[10px] font-medium tracking-wider text-amber-700 uppercase">
+            Sin gama
         </span>
     )
 }

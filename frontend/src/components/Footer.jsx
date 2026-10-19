@@ -1,68 +1,84 @@
-import { MARCA, CERTIFICACIONES } from '../lib/marca'
+import emblema from '../assets/emblema.png'
+import { MARCA, enlaceTelefono, enlaceEmail, enlaceInstagram } from '../lib/marca'
 
-export default function Footer({ onNavigate, onAdmin }) {
+// Les coordonnees sont des liens : souligne discret, qui se renforce au survol
+const CLASE_ENLACE =
+    'underline decoration-forest/30 underline-offset-4 transition-colors hover:text-forest-3 hover:decoration-forest'
+
+export default function Footer({ onAdmin }) {
     return (
-        <footer className="mt-24 bg-forest text-cream">
-            <div className="mx-auto grid max-w-6xl gap-10 px-6 py-16 md:grid-cols-4">
-                <div className="md:col-span-2">
-                    <p className="font-display text-2xl">{MARCA.nombre}</p>
-                    <p className="mt-1 text-[10px] tracking-[0.3em] text-gold uppercase">
-                        {MARCA.razonSocial}
-                    </p>
+        <footer className="border-t border-forest/10 bg-white">
+            <div className="mx-auto grid max-w-7xl gap-10 px-6 py-14 lg:grid-cols-[2fr_1fr]">
+                <div>
+                    <div className="flex items-center gap-3">
+                        <img
+                            src={emblema}
+                            alt="Sandy Beauty"
+                            className="h-9 w-9 rounded-full object-cover"
+                        />
+                        <span className="titulo text-sm font-semibold tracking-wide text-forest">
+                            SANDY BEAUTY
+                        </span>
+                    </div>
 
-                    <p className="mt-5 max-w-sm text-sm leading-relaxed text-cream/70">
+                    <p className="mt-5 max-w-xs text-[13px] leading-relaxed text-muted">
                         Biocosmética de selva. Cultivamos, prensamos, formulamos y masajeamos en
-                        Malabo. 100% fabricado en Guinea Ecuatorial.
+                        Malabo. Certificado OAPI, ISO 9001, 16128, 22716.
                     </p>
 
                     <div className="mt-6 flex flex-wrap gap-2">
-                        {CERTIFICACIONES.map((c) => (
-                            <span
-                                key={c}
-                                className="rounded-full border border-gold/40 px-3 py-1 text-[10px] tracking-widest text-gold uppercase"
-                            >
-                                {c}
-                            </span>
-                        ))}
+                        <span className="rounded-full bg-cream px-4 py-2 text-[9px] tracking-[0.12em] text-forest uppercase">
+                            Pago seguro con tarjeta
+                        </span>
+                        <span className="rounded-full bg-cream px-4 py-2 text-[9px] tracking-[0.12em] text-forest uppercase">
+                            Envío 24h Malabo
+                        </span>
                     </div>
                 </div>
 
                 <div>
-                    <p className="text-xs tracking-[0.2em] text-gold uppercase">Tienda</p>
-                    <div className="mt-4 flex flex-col gap-2 text-sm text-cream/70">
-                        <button onClick={() => onNavigate('tienda')} className="text-left hover:text-gold">
-                            Catálogo
-                        </button>
-                        <button onClick={() => onNavigate('cabina')} className="text-left hover:text-gold">
-                            Cabina Malabo
-                        </button>
-                        <button onClick={() => onNavigate('nosotros')} className="text-left hover:text-gold">
-                            Nuestra historia
-                        </button>
-                    </div>
-                </div>
-
-                <div>
-                    <p className="text-xs tracking-[0.2em] text-gold uppercase">Contacto</p>
-                    <div className="mt-4 flex flex-col gap-2 text-sm text-cream/70">
+                    <p className="text-[10px] tracking-[0.2em] text-muted uppercase">Contacto</p>
+                    <div className="mt-5 flex flex-col items-start gap-3 text-[13px] text-forest">
                         <span>{MARCA.direccion}</span>
-                        <span>WhatsApp {MARCA.whatsapp}</span>
-                        <span>{MARCA.email}</span>
+                        <a href={enlaceTelefono(MARCA.telefono1)} className={CLASE_ENLACE}>
+                            {MARCA.telefono1}
+                        </a>
+                        <a href={enlaceEmail(MARCA.email)} className={CLASE_ENLACE}>
+                            {MARCA.email}
+                        </a>
+                        <a href={enlaceInstagram(MARCA.instagram)} target="_blank" rel="noreferrer" className={CLASE_ENLACE}>
+                            {MARCA.instagram}
+                        </a>
                     </div>
                 </div>
+
+                {/* Retires pour l'instant (octobre 2026) :
+                    - la colonne Legal : ses liens ne menaient nulle part, les pages legales restent a ecrire ;
+                    - la newsletter : le bouton n'enregistrait aucune adresse. */}
             </div>
 
-            <div className="border-t border-cream/10">
-                <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-6 py-5 text-[11px] text-cream/50">
-                    <span>
-                        © {new Date().getFullYear()} {MARCA.razonSocial} · Malabo, Guinea Ecuatorial
+            <div className="border-t border-forest/10">
+                <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-6 py-5">
+                    <span className="text-[10px] tracking-[0.15em] text-muted uppercase">
+                        © {new Date().getFullYear()} {MARCA.razonSocial} · Malabo, GE
                     </span>
-                    <button
-                        onClick={onAdmin}
-                        className="border border-cream/25 px-4 py-2 text-[10px] tracking-[0.2em] text-cream/70 uppercase transition hover:border-gold hover:text-gold"
-                    >
-                        Administración
-                    </button>
+
+                    <div className="flex items-center gap-6">
+                        <span className="text-[10px] tracking-[0.15em] text-muted uppercase">
+                            Hecho con moringa y cacao de Bioko
+                        </span>
+                        <button
+                            onClick={onAdmin}
+                            className="boton-contorno boton-mini"
+                        >
+                            {/* Cadenas : espace reserve a l'administration */}
+                            <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <rect x="5" y="10.5" width="14" height="10" rx="2" />
+                                <path d="M8 10.5V7.5a4 4 0 0 1 8 0v3" />
+                            </svg>
+                            Admin
+                        </button>
+                    </div>
                 </div>
             </div>
         </footer>

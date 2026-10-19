@@ -36,7 +36,7 @@ export default function AdminLogin({ onLogin, onBack }) {
     return (
         <div className="flex min-h-screen items-center justify-center bg-forest px-6">
             <form onSubmit={submit} className="w-full max-w-sm">
-                <p className="font-display text-center text-2xl text-cream">{MARCA.nombre}</p>
+                <p className="titulo text-center text-2xl text-cream">{MARCA.nombre}</p>
                 <p className="mt-1 text-center text-[10px] tracking-[0.3em] text-gold uppercase">
                     Administración
                 </p>
@@ -74,7 +74,7 @@ export default function AdminLogin({ onLogin, onBack }) {
                 <button
                     type="submit"
                     disabled={sending}
-                    className="mt-8 w-full bg-gold py-4 text-[11px] tracking-[0.2em] text-forest uppercase transition hover:bg-gold-light disabled:opacity-50"
+                    className="mt-8 w-full bg-gold py-4 text-[11px] tracking-[0.2em] text-forest uppercase transition hover:bg-gold-2 disabled:opacity-50"
                 >
                     Entrar
                 </button>
@@ -82,7 +82,7 @@ export default function AdminLogin({ onLogin, onBack }) {
                 <button
                     type="button"
                     onClick={onBack}
-                    className="mt-5 w-full text-[11px] tracking-[0.2em] text-cream/50 uppercase hover:text-gold"
+                    className="boton-contorno-claro mt-5 w-full"
                 >
                     Volver a la tienda
                 </button>

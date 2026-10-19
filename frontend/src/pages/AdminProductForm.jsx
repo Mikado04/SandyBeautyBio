@@ -6,6 +6,7 @@ export default function AdminProductForm({ product, onDone, onCancel }) {
     let init = {
         name: '',
         category_id: '',
+        gama: '',
         description: '',
         size: '',
         price: '',
@@ -18,6 +19,7 @@ export default function AdminProductForm({ product, onDone, onCancel }) {
         init = {
             name: product.name,
             category_id: product.category_id,
+            gama: product.gama || '',
             description: product.description || '',
             size: product.size || '',
             price: product.price,
@@ -30,6 +32,8 @@ export default function AdminProductForm({ product, onDone, onCancel }) {
     const [categories, setCategories] = useState([])
     const [name, setName] = useState(init.name)
     const [categoryId, setCategoryId] = useState(init.category_id)
+    // '' = sin gama ; sinon 'SANDY NATUR' ou 'BELLA ECUATOGUINEANA BIO'
+    const [gama, setGama] = useState(init.gama)
     const [description, setDescription] = useState(init.description)
     const [size, setSize] = useState(init.size)
     const [price, setPrice] = useState(init.price)
@@ -59,6 +63,8 @@ export default function AdminProductForm({ product, onDone, onCancel }) {
         const data = new FormData()
         data.append('name', name)
         data.append('category_id', categoryId)
+        // Une chaine vide devient null cote Laravel (ConvertEmptyStringsToNull)
+        data.append('gama', gama)
         data.append('description', description)
         data.append('size', size)
         data.append('price', price)
@@ -127,11 +133,11 @@ export default function AdminProductForm({ product, onDone, onCancel }) {
                 <div className="mx-auto max-w-2xl px-6 py-6">
                     <button
                         onClick={onCancel}
-                        className="text-[11px] tracking-[0.2em] text-cream/60 uppercase hover:text-gold"
+                        className="boton-contorno-claro boton-mini"
                     >
                         ← Volver a la lista
                     </button>
-                    <h1 className="font-display mt-2 text-2xl">{titre}</h1>
+                    <h1 className="titulo mt-2 text-2xl">{titre}</h1>
                 </div>
             </div>
 
@@ -172,6 +178,25 @@ export default function AdminProductForm({ product, onDone, onCancel }) {
                             ))}
                         </select>
                         {errorFor('category_id')}
+                    </div>
+
+                    <div className="mt-4">
+                        <label htmlFor="producto-gama" className="text-[11px] tracking-widest text-forest/50 uppercase">
+                            Gama
+                        </label>
+                        {/* Les valeurs doivent etre exactement celles acceptees par
+                            AdminProductController (regle in:) et par les boutons de la section Gamas */}
+                        <select
+                            id="producto-gama"
+                            value={gama}
+                            onChange={(e) => setGama(e.target.value)}
+                            className={champ}
+                        >
+                            <option value="">— Sin gama —</option>
+                            <option value="SANDY NATUR">Sandy Natur</option>
+                            <option value="BELLA ECUATOGUINEANA BIO">Bella Ecuatoguineana BIO</option>
+                        </select>
+                        {errorFor('gama')}
                     </div>
 
                     <div className="mt-4">

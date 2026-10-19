@@ -20,12 +20,20 @@ class Order extends Model
         'total',
         'notes',
         'paid_at',
+        'shipped_at',
+        'delivered_at',
+        'cancelled_at',
         'currency',
     ];
 
     protected function casts(): array
     {
-        return ['total' => 'integer', 'paid_at' => 'datetime'];
+        return [
+            'total' => 'integer', 
+            'paid_at' => 'datetime',
+            'shipped_at' => 'datetime',
+            'delivered_at' => 'datetime',
+            'cancelled_at' => 'datetime'];
     }
 
     public function items(): HasMany
